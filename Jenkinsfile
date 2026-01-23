@@ -1,13 +1,7 @@
 properties([
     parameters([
-        string(
-            defaultValue: 'dev',
-            name: 'Environment'
-        ),
-        choice(
-            choices: ['plan', 'apply', 'destroy'], 
-            name: 'Terraform_Action'
-        )
+        string(defaultValue: 'dev', name: 'Environment'),
+        choice(choices: ['plan', 'apply', 'destroy'], name: 'Terraform_Action')
     ])
 ])
 
@@ -36,13 +30,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
-                    sh '''
-                      docker run --rm \
-                        -v $PWD:/workspace \
-                        -w /workspace/eks \
-                        hashicorp/terraform:1.14.3 \
-                        terraform init
-                    '''
+                    sh 'terraform -chdir=eks init'
                 }
             }
         }
@@ -50,13 +38,7 @@ pipeline {
         stage('Terraform Validate') {
             steps {
                 withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
-                    sh '''
-                      docker run --rm \
-                        -v $PWD:/workspace \
-                        -w /workspace/eks \
-                        hashicorp/terraform:1.14.3 \
-                        terraform validate
-                    '''
+                    sh 'terraform -chdir=eks validate'
                 }
             }
         }
@@ -66,29 +48,11 @@ pipeline {
                 withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
                     script {
                         if (params.Terraform_Action == 'plan') {
-                            sh '''
-                              docker run --rm \
-                                -v $PWD:/workspace \
-                                -w /workspace/eks \
-                                hashicorp/terraform:1.14.3 \
-                                terraform plan -var-file=${Environment}.tfvars
-                            '''
+                            sh "terraform -chdir=eks plan -var-file=${params.Environment}.tfvars"
                         } else if (params.Terraform_Action == 'apply') {
-                            sh '''
-                              docker run --rm \
-                                -v $PWD:/workspace \
-                                -w /workspace/eks \
-                                hashicorp/terraform:1.14.3 \
-                                terraform apply -var-file=${Environment}.tfvars -auto-approve
-                            '''
+                            sh "terraform -chdir=eks apply -var-file=${params.Environment}.tfvars -auto-approve"
                         } else if (params.Terraform_Action == 'destroy') {
-                            sh '''
-                              docker run --rm \
-                                -v $PWD:/workspace \
-                                -w /workspace/eks \
-                                hashicorp/terraform:1.14.3 \
-                                terraform destroy -var-file=${Environment}.tfvars -auto-approve
-                            '''
+                            sh "terraform -chdir=eks destroy -var-file=${params.Environment}.tfvars -auto-approve"
                         }
                     }
                 }

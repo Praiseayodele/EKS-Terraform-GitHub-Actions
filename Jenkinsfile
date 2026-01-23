@@ -12,11 +12,10 @@ properties([
 ])
 
 pipeline {
-    agent {
-        docker {
-            image 'hashicorp/terraform:1.14.3'
-            args '-u root:root'
-        }
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1'
     }
 
     stages {
@@ -34,42 +33,62 @@ pipeline {
             }
         }
 
-        stage('Install AWS CLI') {
+        stage('Terraform Init') {
             steps {
-                sh '''
-                  apk add --no-cache aws-cli
-                '''
-            }
-        }
-
-        stage('Init') {
-            steps {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                    sh 'terraform -chdir=eks/ init'
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh '''
+                      docker run --rm \
+                        -v $PWD:/workspace \
+                        -w /workspace/eks \
+                        hashicorp/terraform:1.14.3 \
+                        terraform init
+                    '''
                 }
             }
         }
 
-        stage('Validate') {
+        stage('Terraform Validate') {
             steps {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                    sh 'terraform -chdir=eks/ validate'
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh '''
+                      docker run --rm \
+                        -v $PWD:/workspace \
+                        -w /workspace/eks \
+                        hashicorp/terraform:1.14.3 \
+                        terraform validate
+                    '''
                 }
             }
         }
 
-        stage('Action') {
+        stage('Terraform Action') {
             steps {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                    script {    
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    script {
                         if (params.Terraform_Action == 'plan') {
-                            sh "terraform -chdir=eks/ plan -var-file=${params.Environment}.tfvars"
+                            sh '''
+                              docker run --rm \
+                                -v $PWD:/workspace \
+                                -w /workspace/eks \
+                                hashicorp/terraform:1.14.3 \
+                                terraform plan -var-file=${Environment}.tfvars
+                            '''
                         } else if (params.Terraform_Action == 'apply') {
-                            sh "terraform -chdir=eks/ apply -var-file=${params.Environment}.tfvars -auto-approve"
+                            sh '''
+                              docker run --rm \
+                                -v $PWD:/workspace \
+                                -w /workspace/eks \
+                                hashicorp/terraform:1.14.3 \
+                                terraform apply -var-file=${Environment}.tfvars -auto-approve
+                            '''
                         } else if (params.Terraform_Action == 'destroy') {
-                            sh "terraform -chdir=eks/ destroy -var-file=${params.Environment}.tfvars -auto-approve"
-                        } else {
-                            error "Invalid value for Terraform_Action: ${params.Terraform_Action}"
+                            sh '''
+                              docker run --rm \
+                                -v $PWD:/workspace \
+                                -w /workspace/eks \
+                                hashicorp/terraform:1.14.3 \
+                                terraform destroy -var-file=${Environment}.tfvars -auto-approve
+                            '''
                         }
                     }
                 }

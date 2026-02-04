@@ -7,8 +7,8 @@ terraform {
     }
   }
   backend "s3" {
-    bucket         = "praise-terraform-state-bucket"
-    region         = "us-east-1"
+    bucket         = "praises-terraform-state-bucket"
+    region         = "us-east-2"
     key            = "eks/terraform.tfstate"
     dynamodb_table = "Lock-Files"
     encrypt        = true

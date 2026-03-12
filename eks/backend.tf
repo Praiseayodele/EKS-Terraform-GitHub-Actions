@@ -5,13 +5,14 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.49.0"
     }
-backend "s3" {
+  }
+  backend "s3" {
     bucket         = "praise-tf-state-161807613169"
     region         = "us-east-1"
     key            = "eks/terraform.tfstate"
     dynamodb_table = "terraform-locks"
     encrypt        = true
-}
+  }
 }
 
 provider "aws" {

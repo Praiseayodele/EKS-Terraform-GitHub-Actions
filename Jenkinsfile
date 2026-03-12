@@ -30,7 +30,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
-                    sh 'terraform -chdir=eks init'
+                    sh 'terraform -chdir=eks init -reconfigure'
                 }
             }
         }
